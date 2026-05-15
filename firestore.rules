@@ -1,0 +1,77 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+
+    // Helper functions
+    function isSignedIn() {
+      return request.auth != null;
+    }
+
+    function isOwner(userId) {
+      return isSignedIn() && request.auth.uid == userId;
+    }
+
+    function isAdmin() {
+      return isSignedIn() && (
+        request.auth.token.email == 'robsonbatista3@gmail.com' ||
+        (exists(/databases/$(database)/documents/users/$(request.auth.uid)) && 
+         get(/databases/$(database)/documents/users/$(request.auth.uid)).data.get('role', '') == 'admin')
+      );
+    }
+
+    function isValidId(id) {
+      return id is string && id.size() <= 128 && id.matches('^[a-zA-Z0-9_\\-]+$');
+    }
+
+    // Default deny
+    match /{document=**} {
+      allow read, write: if false;
+    }
+
+    // User profiles
+    match /users/{userId} {
+      allow read: if isOwner(userId) || isAdmin() || (resource.data.role == 'provider' && resource.data.status == 'active');
+      allow create: if (isSignedIn() && request.auth.uid == userId && (
+        request.resource.data.role in ['client', 'provider'] &&
+        request.resource.data.status == 'pending' &&
+        request.resource.data.fullName is string &&
+        request.resource.data.email == request.auth.token.email
+      )) || isAdmin();
+      allow update: if (isOwner(userId) || isAdmin()) && (
+        isAdmin() || (
+          // Client/Provider updating their own non-sensitive fields
+          !request.resource.data.diff(resource.data).affectedKeys().hasAny(['role', 'status', 'email', 'uid', 'createdAt'])
+        )
+      );
+    }
+
+    // Reviews
+    match /providers/{providerId}/reviews/{reviewId} {
+      allow read: if true;
+      allow create: if isAdmin() || (
+                    isSignedIn() && 
+                    request.resource.data.clientId == request.auth.uid &&
+                    request.resource.data.rating >= 1 && request.resource.data.rating <= 5
+      );
+      allow delete: if isAdmin() || (isSignedIn() && resource.data.clientId == request.auth.uid);
+    }
+
+    // Favorites
+    match /clients/{clientId}/favorites/{favoriteId} {
+      allow read, write: if isOwner(clientId) || isAdmin();
+    }
+
+    // Payments
+    match /payments/{paymentId} {
+      allow read: if isAdmin() || (isSignedIn() && resource.data.providerId == request.auth.uid);
+      allow create: if isSignedIn() && request.resource.data.providerId == request.auth.uid;
+      allow update: if isAdmin();
+    }
+
+    // App Settings
+    match /settings/{settingId} {
+      allow read: if true;
+      allow write: if isAdmin();
+    }
+  }
+}

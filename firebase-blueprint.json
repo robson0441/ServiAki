@@ -1,0 +1,115 @@
+{
+  "entities": {
+    "User": {
+      "title": "User",
+      "description": "Represents both clients and service providers.",
+      "type": "object",
+      "properties": {
+        "uid": { "type": "string" },
+        "fullName": { "type": "string" },
+        "email": { "type": "string" },
+        "phone": { "type": "string" },
+        "role": { "type": "string", "enum": ["client", "provider", "admin"] },
+        "photoURL": { "type": "string" },
+        "category": { "type": "string" },
+        "bio": { "type": "string" },
+        "whatsapp": { "type": "string" },
+        "facebook": { "type": "string" },
+        "instagram": { "type": "string" },
+        "status": { "type": "string", "enum": ["pending", "active", "suspended"] },
+        "address": {
+          "type": "object",
+          "properties": {
+            "cep": { "type": "string" },
+            "street": { "type": "string" },
+            "number": { "type": "string" },
+            "neighborhood": { "type": "string" },
+            "city": { "type": "string" },
+            "state": { "type": "string" },
+            "coordinates": {
+              "type": "object",
+              "properties": {
+                "lat": { "type": "number" },
+                "lng": { "type": "number" }
+              }
+            }
+          }
+        },
+        "createdAt": { "type": "string", "format": "date-time" },
+        "planExpiresAt": { "type": "string", "format": "date-time" }
+      },
+      "required": ["uid", "fullName", "role", "email"]
+    },
+    "Review": {
+      "title": "Review",
+      "description": "A review for a service provider.",
+      "type": "object",
+      "properties": {
+        "providerId": { "type": "string" },
+        "clientId": { "type": "string" },
+        "clientName": { "type": "string" },
+        "rating": { "type": "number" },
+        "comment": { "type": "string" },
+        "createdAt": { "type": "string", "format": "date-time" }
+      },
+      "required": ["providerId", "clientId", "rating", "createdAt"]
+    },
+    "Favorite": {
+      "title": "Favorite",
+      "description": "Tracks which providers a client has favorited.",
+      "type": "object",
+      "properties": {
+        "clientId": { "type": "string" },
+        "providerId": { "type": "string" },
+        "createdAt": { "type": "string", "format": "date-time" }
+      },
+      "required": ["clientId", "providerId"]
+    },
+    "Payment": {
+      "title": "Payment",
+      "description": "Tracks subscription payments for providers.",
+      "type": "object",
+      "properties": {
+        "providerId": { "type": "string" },
+        "amount": { "type": "number" },
+        "status": { "type": "string", "enum": ["pending", "verified"] },
+        "receiptUrl": { "type": "string" },
+        "createdAt": { "type": "string", "format": "date-time" }
+      },
+      "required": ["providerId", "amount", "status", "createdAt"]
+    },
+    "AppSettings": {
+      "title": "App Settings",
+      "description": "Global application configuration.",
+      "type": "object",
+      "properties": {
+        "supportWhatsapp": { "type": "string" },
+        "subscriptionPrice": { "type": "number" },
+        "updatedAt": { "type": "string", "format": "date-time" }
+      },
+      "required": ["supportWhatsapp"]
+    }
+  },
+  "firestore": {
+    "/users/{userId}": {
+      "schema": "User",
+      "description": "Collection of all users."
+    },
+    "/providers/{providerId}/reviews/{reviewId}": {
+      "schema": "Review",
+      "description": "Reviews for a specific provider."
+    },
+    "/clients/{clientId}/favorites/{favoriteId}": {
+      "schema": "Favorite",
+      "description": "Favorite providers for a client."
+    },
+    "/payments/{paymentId}": {
+      "schema": "Payment",
+      "description": "Global log of subscription payments for admin review."
+    },
+    "/settings/{settingId}": {
+      "schema": "AppSettings",
+      "description": "Global application settings."
+    }
+  }
+}
